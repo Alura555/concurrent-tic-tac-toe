@@ -8,7 +8,6 @@ public class PlayerImpl implements Player{
     private static final Lock LOCK = new ReentrantLock();
     private static final Condition MAKE_MOVE = LOCK.newCondition();
     public static final char GOES_FIRST_MARK = 'X';
-    private static boolean gameIsStart;
 
     private final TicTacToe ticTacToe;
     private final char mark;
@@ -18,7 +17,6 @@ public class PlayerImpl implements Player{
         this.ticTacToe = ticTacToe;
         this.mark = mark;
         this.strategy = strategy;
-        gameIsStart = false;
     }
 
     @Override
@@ -26,19 +24,16 @@ public class PlayerImpl implements Player{
         while (gameNotOver()) {
             LOCK.lock();
             try {
-                if (ticTacToe.lastMark() == mark) {
+                if (ticTacToe.lastMark() == mark || mark != GOES_FIRST_MARK && ticTacToe.lastMark() == 0) {
                     MAKE_MOVE.await();
                 }
-                if (gameNotOver()
-                        && ticTacToe.lastMark() != mark
-                        && (mark == GOES_FIRST_MARK || gameIsStart)) {
+                if (gameNotOver()) {
                     Move move = strategy.computeMove(mark, ticTacToe);
                     ticTacToe.setMark(move.row, move.column, mark);
-                    gameIsStart = true;
                 }
                 MAKE_MOVE.signalAll();
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                Thread.currentThread().interrupt();
             } finally {
                 LOCK.unlock();
             }
